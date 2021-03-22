@@ -195,6 +195,10 @@ master_create_distributed_table(PG_FUNCTION_ARGS)
 Datum
 create_distributed_table(PG_FUNCTION_ARGS)
 {
+	if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2) || PG_ARGISNULL(3))
+	{
+		PG_RETURN_VOID();
+	}
 	bool viaDeprecatedAPI = false;
 
 	Oid relationId = PG_GETARG_OID(0);
