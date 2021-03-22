@@ -3,9 +3,9 @@ CREATE OR REPLACE FUNCTION create_distributed_table(table_name regclass,
                                                     distribution_column text,
                                                     distribution_type citus.distribution_type DEFAULT 'hash',
                                                     colocate_with text DEFAULT 'default',
-                                                    shard_count int DEFAULT current_setting('citus.shard_count')::int)
+                                                    shard_count int DEFAULT NULL)
     RETURNS void
-    LANGUAGE C STRICT
+    LANGUAGE C
     AS 'MODULE_PATHNAME', $$create_distributed_table$$;
 COMMENT ON FUNCTION create_distributed_table(table_name regclass,
 											 distribution_column text,

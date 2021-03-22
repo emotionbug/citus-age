@@ -325,7 +325,7 @@ PostprocessCreateTableStmtPartitionOf(CreateStmt *createStatement, const
 		bool viaDeprecatedAPI = false;
 
 		CreateDistributedTable(relationId, parentDistributionColumn,
-							   parentDistributionMethod, ShardCount,
+							   parentDistributionMethod, ShardCount, false,
 							   parentRelationName, viaDeprecatedAPI);
 	}
 }
@@ -399,7 +399,7 @@ PostprocessAlterTableStmtAttachPartition(AlterTableStmt *alterTableStatement,
 				bool viaDeprecatedAPI = false;
 
 				CreateDistributedTable(partitionRelationId, distributionColumn,
-									   distributionMethod, ShardCount,
+									   distributionMethod, ShardCount, false,
 									   parentRelationName, viaDeprecatedAPI);
 			}
 		}
