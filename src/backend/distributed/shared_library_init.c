@@ -1063,11 +1063,12 @@ RegisterCitusConfigVariables(void)
 	DefineCustomBoolVariable(
 		"citus.enable_cte_inlining",
 		gettext_noop("When set to false, CTE inlining feature is disabled."),
-		gettext_noop("This feature is not intended for users and it is deprecated. It is developed "
-					 "to get consistent regression test outputs between Postgres 11"
-					 "and Postgres 12. In Postgres 12+, the user can control the behaviour"
-					 "by [NOT] MATERIALIZED keyword on CTEs. However, in PG 11, we cannot do "
-					 "that."),
+		gettext_noop(
+			"This feature is not intended for users and it is deprecated. It is developed "
+			"to get consistent regression test outputs between Postgres 11"
+			"and Postgres 12. In Postgres 12+, the user can control the behaviour"
+			"by [NOT] MATERIALIZED keyword on CTEs. However, in PG 11, we cannot do "
+			"that."),
 		&EnableCTEInlining,
 		true,
 		PGC_SUSET,
