@@ -7,9 +7,8 @@ SET search_path TO subquery_in_where, public;
 SET client_min_messages TO DEBUG1;
 
 --CTEs can be used as a recurring tuple with subqueries in WHERE
--- prevent PG 11 - PG 12 outputs to diverge
 WITH event_id
-     AS (SELECT user_id AS events_user_id,
+     AS MATERIALIZED (SELECT user_id AS events_user_id,
                 time    AS events_time,
                 event_type
          FROM   events_table)
@@ -20,7 +19,7 @@ WHERE  events_user_id IN (SELECT user_id
 
 --Correlated subqueries can not be used in WHERE clause
 WITH event_id
-     AS (SELECT user_id AS events_user_id,
+     AS MATERIALIZED (SELECT user_id AS events_user_id,
                 time    AS events_time,
                 event_type
          FROM   events_table)

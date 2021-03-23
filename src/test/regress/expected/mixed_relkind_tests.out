@@ -469,34 +469,36 @@ SELECT COUNT(*) FROM unlogged_distributed_table u1 JOIN partitioned_distributed_
 
 RESET citus.enable_repartition_joins;
 -- joins with cte's
-WITH cte_1 AS (SELECT * FROM partitioned_distributed_table)
+WITH cte_1 AS MATERIALIZED (SELECT * FROM partitioned_distributed_table)
   SELECT COUNT(*) FROM cte_1;
-DEBUG:  CTE cte_1 is going to be inlined via distributed planning
+DEBUG:  generating subplan XXX_1 for CTE cte_1: SELECT a, b FROM mixed_relkind_tests.partitioned_distributed_table
+DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT count(*) AS count FROM (SELECT intermediate_result.a, intermediate_result.b FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(a integer, b integer)) cte_1
  count
 ---------------------------------------------------------------------
     78
 (1 row)
 
-WITH cte_1 AS (SELECT * FROM partitioned_distributed_table)
+WITH cte_1 AS MATERIALIZED (SELECT * FROM partitioned_distributed_table)
   SELECT COUNT(*) FROM cte_1 JOIN partitioned_distributed_table USING (a);
-DEBUG:  CTE cte_1 is going to be inlined via distributed planning
+DEBUG:  generating subplan XXX_1 for CTE cte_1: SELECT a, b FROM mixed_relkind_tests.partitioned_distributed_table
+DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT count(*) AS count FROM ((SELECT intermediate_result.a, intermediate_result.b FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(a integer, b integer)) cte_1 JOIN mixed_relkind_tests.partitioned_distributed_table USING (a))
  count
 ---------------------------------------------------------------------
   1014
 (1 row)
 
-WITH cte_1 AS (SELECT * FROM foreign_distributed_table)
+WITH cte_1 AS MATERIALIZED (SELECT * FROM foreign_distributed_table)
   SELECT COUNT(*) FROM cte_1 JOIN foreign_distributed_table USING (a);
-DEBUG:  CTE cte_1 is going to be inlined via distributed planning
+DEBUG:  generating subplan XXX_1 for CTE cte_1: SELECT a, b FROM mixed_relkind_tests.foreign_distributed_table
+DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT count(*) AS count FROM ((SELECT intermediate_result.a, intermediate_result.b FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(a integer, b integer)) cte_1 JOIN mixed_relkind_tests.foreign_distributed_table USING (a))
  count
 ---------------------------------------------------------------------
      0
 (1 row)
 
-WITH cte_1 AS (SELECT * FROM partitioned_distributed_table)
+WITH cte_1 AS MATERIALIZED (SELECT * FROM partitioned_distributed_table)
   SELECT COUNT(*) FROM cte_1 JOIN partitioned_distributed_table USING (b);
-DEBUG:  CTE cte_1 is going to be inlined via distributed planning
-DEBUG:  generating subplan XXX_1 for subquery SELECT a, b FROM mixed_relkind_tests.partitioned_distributed_table
+DEBUG:  generating subplan XXX_1 for CTE cte_1: SELECT a, b FROM mixed_relkind_tests.partitioned_distributed_table
 DEBUG:  Plan XXX query after replacing subqueries and CTEs: SELECT count(*) AS count FROM ((SELECT intermediate_result.a, intermediate_result.b FROM read_intermediate_result('XXX_1'::text, 'binary'::citus_copy_format) intermediate_result(a integer, b integer)) cte_1 JOIN mixed_relkind_tests.partitioned_distributed_table USING (b))
  count
 ---------------------------------------------------------------------
@@ -515,8 +517,8 @@ FROM (SELECT * FROM unlogged_distributed_table WHERE b = 1) AS sub1,
      (SELECT * FROM unlogged_distributed_table WHERE b = 2) AS sub2
 WHERE sub1.a = sub2.a AND sub1.a = dt.a AND dt.a > 1;
 -- multi shard non-colocated update
-WITH cte1 AS (SELECT * FROM partitioned_distributed_table WHERE b = 1),
-     cte2 AS (SELECT * FROM partitioned_distributed_table WHERE b = 2)
+WITH cte1 AS MATERIALIZED (SELECT * FROM partitioned_distributed_table WHERE b = 1),
+     cte2 AS MATERIALIZED (SELECT * FROM partitioned_distributed_table WHERE b = 2)
 UPDATE partitioned_distributed_table dt SET b = cte1.a + cte2.a
 FROM cte1, cte2 WHERE cte1.a != cte2.a AND cte1.a = dt.a AND dt.a > 1;
 DEBUG:  generating subplan XXX_1 for CTE cte1: SELECT a, b FROM mixed_relkind_tests.partitioned_distributed_table WHERE (b OPERATOR(pg_catalog.=) 1)

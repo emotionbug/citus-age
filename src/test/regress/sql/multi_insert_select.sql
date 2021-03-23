@@ -518,7 +518,7 @@ SELECT user_id, value_1_agg FROM agg_events ORDER BY 1,2;
 -- but prefer to prevent inlining of the CTE
 -- in order not to diverge from pg 11 vs pg 12
 BEGIN;
-WITH fist_table_agg AS
+WITH fist_table_agg AS MATERIALIZED
   (SELECT max(value_1)+1 as v1_agg, user_id FROM raw_events_first GROUP BY user_id)
 INSERT INTO agg_events
             (value_1_agg, user_id)

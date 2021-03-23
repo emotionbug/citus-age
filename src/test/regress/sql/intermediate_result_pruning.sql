@@ -32,7 +32,7 @@ SET client_min_messages TO DEBUG1;
 
 -- a very basic case, where the intermediate result
 -- should go to both workers
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key FROM table_1 WHERE value IN ('3', '4'))
 SELECT
 	count(*)
@@ -43,7 +43,7 @@ FROM
 -- a very basic case, where the intermediate result
 -- should only go to one worker because the final query is a router
 -- we use random() to prevent postgres inline the CTE(s)
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4'))
 SELECT
 	count(*)
@@ -53,7 +53,7 @@ FROM
 -- a similar query, but with a reference table now
 -- given that reference tables are replicated to all nodes
 -- we have to broadcast to all nodes
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4'))
 SELECT
 	count(*)
@@ -63,9 +63,9 @@ FROM
 
 -- a similar query as above, but this time use the CTE inside
 -- another CTE
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1)
 SELECT
 	count(*)
@@ -74,9 +74,9 @@ FROM
 
 -- the second CTE does a join with a distributed table
 -- and the final query is a router query
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key))
 SELECT
 	count(*)
@@ -86,9 +86,9 @@ FROM
 -- the first CTE is used both within second CTE and the final query
 -- the second CTE does a join with a distributed table
 -- and the final query is a router query
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key))
 SELECT
 	count(*)
@@ -98,9 +98,9 @@ FROM
 -- the first CTE is used both within second CTE and the final query
 -- the second CTE does a join with a distributed table but a router query on a worker
 -- and the final query is another router query on another worker
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key) WHERE table_2.key = 1)
 SELECT
 	count(*)
@@ -111,9 +111,9 @@ FROM
 -- the second CTE does a join with a distributed table but a router query on a worker
 -- and the final query is a router query on the same worker, so the first result is only
 -- broadcasted to a single node
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key) WHERE table_2.key = 1)
 SELECT
 	count(*)
@@ -121,9 +121,9 @@ FROM
 	(some_values_2 JOIN table_2 USING (key)) JOIN some_values_1 USING (key) WHERE table_2.key = 1;
 
 -- the same query with the above, but the final query is hitting all shards
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key))
 SELECT
 	count(*)
@@ -133,9 +133,9 @@ FROM
 -- even if we add a filter on the first query and make it a router query,
 -- the first intermediate result still hits all workers because of the final
 -- join is hitting all workers
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key) WHERE table_2.key = 3)
 SELECT
 	count(*)
@@ -145,7 +145,7 @@ FROM
 -- the reference table is joined with a distributed table and an intermediate
 -- result, but the distributed table hits all shards, so the intermediate
 -- result is sent to all nodes
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM ref_table WHERE value IN ('3', '4'))
 SELECT
 	count(*)
@@ -154,7 +154,7 @@ FROM
 
 -- similar query as above, but this time the whole query is a router
 -- query, so no intermediate results
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM ref_table WHERE value IN ('3', '4'))
 SELECT
 	count(*)
@@ -166,9 +166,9 @@ FROM
 -- so the first CTE should only be broadcasted to that node
 -- since the final query doesn't have a join, it should simply be broadcasted
 -- to one node
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key) WHERE key = 1)
 SELECT
 	count(*)
@@ -178,10 +178,10 @@ FROM
 
 -- the same query inlined inside a CTE, and the final query has a
 -- join with a distributed table
-WITH top_cte as (
-		WITH some_values_1 AS
+WITH top_cte as MATERIALIZED (
+		WITH some_values_1 AS MATERIALIZED
 		(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-		some_values_2 AS
+		some_values_2 AS MATERIALIZED
 		(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key) WHERE key = 1)
 	SELECT
 		DISTINCT key
@@ -196,10 +196,10 @@ FROM
 
 -- very much the same query, but this time the top query is also a router query
 -- on a single worker, so all intermediate results only hit a single node
-WITH top_cte as (
-		WITH some_values_1 AS
+WITH top_cte as MATERIALIZED (
+		WITH some_values_1 AS MATERIALIZED
 		(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-		some_values_2 AS
+		some_values_2 AS MATERIALIZED
 		(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key) WHERE key = 1)
 	SELECT
 		DISTINCT key
@@ -214,11 +214,11 @@ FROM
 
 -- some_values_1 is first used by a single shard-query, and than with a multi-shard
 -- CTE, finally a cartesian product join
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1 JOIN table_2 USING (key) WHERE key = 1),
-	some_values_3 AS
+	some_values_3 AS MATERIALIZED
 	(SELECT key FROM (some_values_2 JOIN table_2 USING (key)) JOIN some_values_1 USING (key))
 SELECT * FROM some_values_3 JOIN ref_table ON (true);
 
@@ -226,28 +226,28 @@ SELECT * FROM some_values_3 JOIN ref_table ON (true);
 
 -- join on intermediate results, so should only
 -- go to a single node
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM table_2 WHERE value IN ('3', '4'))
 SELECT count(*) FROM some_values_2 JOIN some_values_1 USING (key);
 
 -- same query with WHERE false make sure that we're not broken
 -- for such edge cases
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM table_2 WHERE value IN ('3', '4'))
 SELECT count(*) FROM some_values_2 JOIN some_values_1 USING (key) WHERE false;
 
 
 -- do not use some_values_2 at all, so only 2 intermediate results are
 -- broadcasted
-WITH some_values_1 AS
+WITH some_values_1 AS MATERIALIZED
 	(SELECT key, random() FROM table_1 WHERE value IN ('3', '4')),
-	some_values_2 AS
+	some_values_2 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1),
-	some_values_3 AS
+	some_values_3 AS MATERIALIZED
 	(SELECT key, random() FROM some_values_1)
 SELECT
 	count(*)
@@ -341,13 +341,13 @@ INTERSECT
 (SELECT key FROM table_1 WHERE key = 2);
 
 -- the intermediate results should just hit a single worker
-WITH cte_1 AS
+WITH cte_1 AS MATERIALIZED
 (
 	(SELECT key FROM table_1 WHERE key = 1)
 	INTERSECT
 	(SELECT key FROM table_1 WHERE key = 2)
 ),
-cte_2 AS
+cte_2 AS MATERIALIZED
 (
 	(SELECT key FROM table_1 WHERE key = 3)
 	INTERSECT
@@ -361,13 +361,13 @@ SELECT * FROM cte_2;
 -- we join the results with distributed tables
 -- so cte_1 should hit all workers, but still the
 -- others should hit single worker each
-WITH cte_1 AS
+WITH cte_1 AS MATERIALIZED
 (
 	(SELECT key FROM table_1 WHERE key = 1)
 	INTERSECT
 	(SELECT key FROM table_1 WHERE key = 2)
 ),
-cte_2 AS
+cte_2 AS MATERIALIZED
 (
 	SELECT count(*) FROM table_1 JOIN cte_1 USING (key)
 )
@@ -403,10 +403,10 @@ WHERE
 -- however, the subquery in WHERE clause of the DELETE query is broadcasted to all
 -- nodes
 BEGIN;
-WITH select_data AS (
+WITH select_data AS MATERIALIZED (
 	SELECT * FROM table_1
 ),
-raw_data AS (
+raw_data AS MATERIALIZED (
 	DELETE FROM table_2 WHERE key >= (SELECT min(key) FROM select_data WHERE key > 1) RETURNING *
 )
 SELECT * FROM raw_data;
@@ -417,10 +417,10 @@ ROLLBACK;
 -- however, the subquery in WHERE clause of the DELETE query is broadcasted to all
 -- nodes
 BEGIN;
-WITH select_data AS (
+WITH select_data AS MATERIALIZED (
 	SELECT * FROM table_1
 ),
-raw_data AS (
+raw_data AS MATERIALIZED (
 	DELETE FROM table_2 WHERE value::int >= (SELECT min(key) FROM select_data WHERE key > 1 + random()) RETURNING *
 )
 SELECT * FROM raw_data;
@@ -429,10 +429,10 @@ ROLLBACK;
 -- now, we need only two intermediate results as the subquery in WHERE clause is
 -- router plannable
 BEGIN;
-WITH select_data AS (
+WITH select_data AS MATERIALIZED (
 	SELECT * FROM table_1
 ),
-raw_data AS (
+raw_data AS MATERIALIZED (
 	DELETE FROM table_2 WHERE value::int >= (SELECT min(key) FROM table_1 WHERE key > random()) AND key = 6 RETURNING *
 )
 SELECT * FROM raw_data;
@@ -455,13 +455,13 @@ INSERT INTO table_1
 INSERT INTO table_1
 	SELECT * FROM table_2 where key = 1 AND
  value::int IN
-		(WITH cte_1 AS
+		(WITH cte_1 AS MATERIALIZED
 		(
 			(SELECT key FROM table_1 WHERE key = 1)
 			INTERSECT
 			(SELECT key FROM table_1 WHERE key = 2)
 		),
-		cte_2 AS
+		cte_2 AS MATERIALIZED
 		(
 			(SELECT key FROM table_1 WHERE key = 3)
 			INTERSECT
@@ -476,13 +476,13 @@ INSERT INTO table_1
 -- hits all the shards because table_2.key != 1
 INSERT INTO table_1
 	SELECT table_2.* FROM table_2,
-	(WITH cte_1 AS
+	(WITH cte_1 AS MATERIALIZED
 		(
 			(SELECT key FROM table_1 WHERE key = 1)
 			INTERSECT
 			(SELECT key FROM table_1 WHERE key = 2)
 		),
-		cte_2 AS
+		cte_2 AS MATERIALIZED
 		(
 			(SELECT key FROM table_1 WHERE key = 3)
 			INTERSECT
@@ -564,16 +564,16 @@ INSERT INTO stats (account_id, spent) VALUES ('foo', 100);
 SELECT *
 FROM
 (
-    WITH accounts_cte AS (
+    WITH accounts_cte AS MATERIALIZED (
         SELECT id AS account_id
         FROM accounts
     ),
-    joined_stats_cte_1 AS (
+    joined_stats_cte_1 AS MATERIALIZED (
         SELECT spent, account_id
         FROM stats
         INNER JOIN accounts_cte USING (account_id)
     ),
-    joined_stats_cte_2 AS (
+    joined_stats_cte_2 AS MATERIALIZED (
         SELECT spent, account_id
         FROM joined_stats_cte_1
         INNER JOIN accounts_cte USING (account_id)
@@ -588,16 +588,16 @@ SET citus.task_assignment_policy to 'round-robin';
 SELECT *
 FROM
 (
-    WITH accounts_cte AS (
+    WITH accounts_cte AS MATERIALIZED (
         SELECT id AS account_id
         FROM accounts
     ),
-    joined_stats_cte_1 AS (
+    joined_stats_cte_1 AS MATERIALIZED (
         SELECT spent, account_id
         FROM stats
         INNER JOIN accounts_cte USING (account_id)
     ),
-    joined_stats_cte_2 AS (
+    joined_stats_cte_2 AS MATERIALIZED (
         SELECT spent, account_id
         FROM joined_stats_cte_1
         INNER JOIN accounts_cte USING (account_id)
@@ -611,10 +611,10 @@ RESET citus.task_assignment_policy;
 -- Insert..select is planned differently, make sure we have results everywhere.
 -- We put the insert..select in a CTE here to prevent the CTE from being moved
 -- into the select, which would follow the regular code path for select.
-WITH stats AS (
+WITH stats AS MATERIALIZED (
   SELECT count(key) m FROM table_3
 ),
-inserts AS (
+inserts AS MATERIALIZED (
   INSERT INTO table_2
   SELECT key, count(*)
   FROM table_1

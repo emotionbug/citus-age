@@ -437,9 +437,8 @@ SELECT count(*) FROM q1, (SELECT
 					users_table.user_id = events_table.value_2 AND event_type IN (1,2,3,4)) as bar WHERE bar.user_id = q1.user_id ;$$);
 
 -- subquery joins should work fine when used with CTEs
--- prevent PG 11 - PG 12 outputs to diverge
 SELECT true AS valid FROM explain_json_2($$
-    WITH q1 AS (SELECT user_id FROM users_table)
+    WITH q1 AS MATERIALIZED (SELECT user_id FROM users_table)
  SELECT count(*) FROM q1, (SELECT
                     users_table.user_id, random()
                 FROM

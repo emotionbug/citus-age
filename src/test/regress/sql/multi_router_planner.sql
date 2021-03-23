@@ -10,9 +10,6 @@ SET citus.next_shard_id TO 840000;
 -- other tests that triggers fast-path-router planner
 SET citus.enable_fast_path_router_planner TO false;
 
--- prevent PG 11 - PG 12 outputs to diverge
--- and CTE inlining is not relevant to router plannery anyway
-
 CREATE TABLE articles_hash (
 	id bigint NOT NULL,
 	author_id bigint NOT NULL,
@@ -229,7 +226,7 @@ INSERT INTO company_employees values(3, 15, 1);
 INSERT INTO company_employees values(3, 3, 1);
 
 -- find employees at top 2 level within company hierarchy
-WITH RECURSIVE hierarchy as (
+WITH RECURSIVE hierarchy as MATERIALIZED (
 	SELECT *, 1 AS level
 		FROM company_employees
 		WHERE company_id = 1 and manager_id = 0
@@ -243,7 +240,7 @@ SELECT * FROM hierarchy WHERE LEVEL <= 2;
 
 -- query becomes not router plannble and gets rejected
 -- if filter on company is dropped
-WITH RECURSIVE hierarchy as (
+WITH RECURSIVE hierarchy as MATERIALIZED (
 	SELECT *, 1 AS level
 		FROM company_employees
 		WHERE company_id = 1 and manager_id = 0
@@ -256,7 +253,7 @@ SELECT * FROM hierarchy WHERE LEVEL <= 2;
 
 -- logically wrong query, query involves different shards
 -- from the same table
-WITH RECURSIVE hierarchy as (
+WITH RECURSIVE hierarchy as MATERIALIZED (
 	SELECT *, 1 AS level
 		FROM company_employees
 		WHERE company_id = 3 and manager_id = 0

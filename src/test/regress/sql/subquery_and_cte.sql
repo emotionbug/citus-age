@@ -19,11 +19,11 @@ SET client_min_messages TO DEBUG1;
 
 -- CTEs are recursively planned, and subquery foo is also recursively planned
 -- final plan becomes a router plan
-WITH cte AS (
-	WITH local_cte AS (
+WITH cte AS MATERIALIZED (
+	WITH local_cte AS MATERIALIZED (
 		SELECT * FROM users_table_local
 	),
-	dist_cte AS (
+	dist_cte AS MATERIALIZED (
 		SELECT user_id FROM events_table
 	)
 	SELECT dist_cte.user_id FROM local_cte JOIN dist_cte ON dist_cte.user_id=local_cte.user_id
@@ -55,9 +55,9 @@ ORDER BY cte1.user_id, cte1.value_1, cte2.user_id, cte2.event_type
 LIMIT 5;
 
 -- CTEs aren't colocated, CTEs become intermediate results
-WITH cte1 AS (
+WITH cte1 AS MATERIALIZED (
    SELECT * FROM users_table WHERE user_id = 1
-), cte2 AS (
+), cte2 AS MATERIALIZED (
    SELECT * FROM events_table WHERE user_id = 6
 )
 SELECT cte1.user_id, cte1.value_1, cte2.user_id, cte2.user_id
@@ -82,27 +82,27 @@ UPDATE dist_table dt SET value = cte1.value_1 + cte2.event_type
 FROM cte1, cte2 WHERE cte1.user_id = dt.id AND dt.id = 1;
 
 -- all relations are not colocated, CTEs become intermediate results
-WITH cte1 AS (
+WITH cte1 AS MATERIALIZED (
    SELECT * FROM users_table WHERE user_id = 1
-), cte2 AS (
+), cte2 AS MATERIALIZED (
    SELECT * FROM events_table WHERE user_id = 6
 )
 UPDATE dist_table dt SET value = cte1.value_1 + cte2.event_type
 FROM cte1, cte2 WHERE cte1.user_id = dt.id AND dt.id = 1;
 
 -- volatile function calls should not be routed
-WITH cte1 AS (SELECT id, value FROM func())
+WITH cte1 AS MATERIALIZED (SELECT id, value FROM func())
 UPDATE dist_table dt SET value = cte1.value
 FROM cte1 WHERE dt.id = 1;
 
 -- CTEs are recursively planned, and subquery foo is also recursively planned
 -- final plan becomes a real-time plan since we also have events_table in the
 -- range table entries
-WITH cte AS (
-	WITH local_cte AS (
+WITH cte AS MATERIALIZED (
+	WITH local_cte AS MATERIALIZED (
 		SELECT * FROM users_table_local
 	),
-	dist_cte AS (
+	dist_cte AS MATERIALIZED (
 		SELECT user_id FROM events_table
 	)
 	SELECT dist_cte.user_id FROM local_cte JOIN dist_cte ON dist_cte.user_id=local_cte.user_id
@@ -125,11 +125,11 @@ FROM
 -- CTEs are replaced and subquery in WHERE is also replaced
 -- but the query is still real-time query since users_table is in the
 -- range table list
-WITH cte AS (
-	WITH local_cte AS (
+WITH cte AS MATERIALIZED (
+	WITH local_cte AS MATERIALIZED (
 		SELECT * FROM users_table_local
 	),
-	dist_cte AS (
+	dist_cte AS MATERIALIZED (
 		SELECT user_id FROM events_table
 	)
 	SELECT dist_cte.user_id FROM local_cte JOIN dist_cte ON dist_cte.user_id=local_cte.user_id
@@ -143,11 +143,11 @@ WHERE
 
 -- subquery in WHERE clause is planned recursively due to the recurring table
 -- in FROM clause
-WITH cte AS (
-	WITH local_cte AS (
+WITH cte AS MATERIALIZED (
+	WITH local_cte AS MATERIALIZED (
 		SELECT * FROM users_table_local
 	),
-	dist_cte AS (
+	dist_cte AS MATERIALIZED (
 		SELECT user_id FROM events_table
 	)
 	SELECT dist_cte.user_id FROM local_cte JOIN dist_cte ON dist_cte.user_id=local_cte.user_id
@@ -212,7 +212,7 @@ SELECT
    DISTINCT bar.user_id
 FROM
     (
-	     WITH cte AS (
+	     WITH cte AS MATERIALIZED (
 	    SELECT
 	    	DISTINCT users_table.user_id
 	     FROM
@@ -228,7 +228,7 @@ FROM
 	     FROM
 	     	users_table,
 	     	(
-	     		WITH cte AS (
+	     		WITH cte AS MATERIALIZED (
 			    SELECT
 			    	event_type, users_table.user_id
 			     FROM
@@ -255,11 +255,11 @@ ORDER BY 1 DESC LIMIT 5;
 -- DISTINCT on a non-partition key
 SELECT * FROM
 (
-	WITH cte AS (
-		WITH local_cte AS (
+	WITH cte AS MATERIALIZED (
+		WITH local_cte AS MATERIALIZED (
 			SELECT * FROM users_table_local
 		),
-		dist_cte AS (
+		dist_cte AS MATERIALIZED (
 			SELECT user_id FROM events_table
 		)
 		SELECT dist_cte.user_id FROM local_cte JOIN dist_cte ON dist_cte.user_id=local_cte.user_id
@@ -280,11 +280,11 @@ LIMIT 5;
 
 
 -- now recursively plan subqueries inside the CTEs that contains LIMIT and OFFSET
-WITH cte AS (
-	WITH local_cte AS (
+WITH cte AS MATERIALIZED (
+	WITH local_cte AS MATERIALIZED (
 		SELECT * FROM users_table_local
 	),
-	dist_cte AS (
+	dist_cte AS MATERIALIZED (
 		SELECT
 			user_id
 		FROM
@@ -317,11 +317,11 @@ SELECT
 FROM
 (
 
-	WITH cte AS (
-	WITH local_cte AS (
+	WITH cte AS MATERIALIZED (
+	WITH local_cte AS MATERIALIZED (
 		SELECT * FROM users_table_local
 	),
-	dist_cte AS (
+	dist_cte AS MATERIALIZED (
 		SELECT
 			user_id
 		FROM
@@ -357,7 +357,7 @@ SELECT
    bar.user_id
 FROM
     (
-	     WITH RECURSIVE cte AS (
+	     WITH RECURSIVE cte AS MATERIALIZED (
 	    SELECT
 	    	DISTINCT users_table.user_id
 	     FROM

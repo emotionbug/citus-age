@@ -103,17 +103,15 @@ WITH inserted_table AS (
 	ON CONFLICT(col_1) DO UPDATE SET col_2 = 0 RETURNING *
 ) SELECT * FROM inserted_table ORDER BY 1;
 
--- prevent PG 11 - PG 12 outputs to diverge
-
 -- Get the select part from cte and do nothing on conflict
-WITH cte AS(
+WITH cte AS MATERIALIZED (
 	SELECT col_1, col_2 FROM source_table_1
 )
 INSERT INTO target_table SELECT * FROM cte ON CONFLICT DO NOTHING;
 
 
 -- Get the select part from cte and update on conflict
-WITH cte AS(
+WITH cte AS MATERIALIZED (
 	SELECT col_1, col_2 FROM source_table_1
 )
 INSERT INTO target_table SELECT * FROM cte ON CONFLICT(col_1) DO UPDATE SET col_2 = EXCLUDED.col_2 + 1;
@@ -121,27 +119,25 @@ SELECT * FROM target_table ORDER BY 1;
 
 
 -- Test with multiple CTEs
-WITH cte AS(
+WITH cte AS MATERIALIZED (
 	SELECT col_1, col_2 FROM source_table_1
-), cte_2 AS(
+), cte_2 AS MATERIALIZED (
 	SELECT col_1, col_2 FROM source_table_2
 )
 INSERT INTO target_table ((SELECT * FROM cte) UNION (SELECT * FROM cte_2)) ON CONFLICT(col_1) DO UPDATE SET col_2 = EXCLUDED.col_2 + 1;
 SELECT * FROM target_table ORDER BY 1;
 
--- prevent PG 11 - PG 12 outputs to diverge
-
-WITH inserted_table AS (
-	WITH cte AS(
+WITH inserted_table AS MATERIALIZED (
+	WITH cte AS MATERIALIZED (
 		SELECT col_1, col_2, col_3 FROM source_table_1
-	), cte_2 AS(
+	), cte_2 AS MATERIALIZED (
 		SELECT col_1, col_2 FROM cte
 	)
 	INSERT INTO target_table SELECT * FROM cte_2 ON CONFLICT(col_1) DO UPDATE SET col_2 = EXCLUDED.col_2 + 1 RETURNING *
 ) SELECT * FROM inserted_table ORDER BY 1;
 
-WITH cte AS (
-	WITH basic AS (
+WITH cte AS MATERIALIZED (
+	WITH basic AS MATERIALIZED (
 		SELECT col_1, col_2 FROM source_table_1
 	)
 	INSERT INTO target_table (SELECT * FROM basic) ON CONFLICT DO NOTHING RETURNING *
