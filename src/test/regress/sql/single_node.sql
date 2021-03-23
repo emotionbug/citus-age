@@ -290,11 +290,7 @@ CREATE INDEX single_node_i1 ON test(x);
 CREATE INDEX single_node_i2 ON test(x,y);
 REINDEX SCHEMA single_node;
 
--- PG 11 does not support CONCURRENTLY
--- and we do not want to add a new output
--- file just for that. Enable the test
--- once we remove PG_VERSION_11
---REINDEX SCHEMA CONCURRENTLY single_node;
+REINDEX SCHEMA CONCURRENTLY single_node;
 
 -- keep one of the indexes
 -- drop w/wout tx blocks

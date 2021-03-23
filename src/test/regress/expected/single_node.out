@@ -488,11 +488,7 @@ COMMIT;
 CREATE INDEX single_node_i1 ON test(x);
 CREATE INDEX single_node_i2 ON test(x,y);
 REINDEX SCHEMA single_node;
--- PG 11 does not support CONCURRENTLY
--- and we do not want to add a new output
--- file just for that. Enable the test
--- once we remove PG_VERSION_11
---REINDEX SCHEMA CONCURRENTLY single_node;
+REINDEX SCHEMA CONCURRENTLY single_node;
 -- keep one of the indexes
 -- drop w/wout tx blocks
 BEGIN;
@@ -705,7 +701,7 @@ USING HASH AS
 operator 1 =,
 function 2 part_hashint4_noop(int4, int8);
 CREATE TABLE hash_parted (
-       a int,
+	a int,
   b int
 ) PARTITION BY HASH (a part_test_int4_ops);
 CREATE TABLE hpart0 PARTITION OF hash_parted FOR VALUES WITH (modulus 4, remainder 0);
