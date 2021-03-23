@@ -494,8 +494,8 @@ CopyToExistingShards(CopyStmt *copyStatement, QueryCompletionCompat *completionT
 	 * and therefore make a copy of the Relation.
 	 */
 	Relation copiedDistributedRelation = (Relation) palloc(sizeof(RelationData));
-	Form_pg_class copiedDistributedRelationTuple = (Form_pg_class) palloc(
-		CLASS_TUPLE_SIZE);
+	Form_pg_class copiedDistributedRelationTuple = 
+		(Form_pg_class) palloc(CLASS_TUPLE_SIZE);
 
 	/*
 	 * There is no need to deep copy everything. We will just deep copy of the fields

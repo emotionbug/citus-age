@@ -42,7 +42,9 @@ typedef struct CitusVacuumParams
 	VacOptTernaryValue truncate;
 	VacOptTernaryValue index_cleanup;
 
+	#if PG_VERSION_NUM >= PG_VERSION_13
 	int nworkers;
+	#endif
 } CitusVacuumParams;
 
 /* Local functions forward declarations for processing distributed table commands */
