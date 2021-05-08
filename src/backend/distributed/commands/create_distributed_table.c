@@ -159,7 +159,7 @@ master_create_distributed_table(PG_FUNCTION_ARGS)
 	 * on this relation to have a supported relation kind. More extensive checks
 	 * will be performed in CreateDistributedTable.
 	 */
-	EnsureRelationKindSupported(relationId);
+	//EnsureRelationKindSupported(relationId);
 
 	distributionColumnName = text_to_cstring(distributionColumnText);
 	distributionColumn = BuildDistributionKeyFromColumnName(relation,
@@ -233,7 +233,7 @@ create_distributed_table(PG_FUNCTION_ARGS)
 	 * on this relation to have a supported relation kind. More extensive checks
 	 * will be performed in CreateDistributedTable.
 	 */
-	EnsureRelationKindSupported(relationId);
+	//EnsureRelationKindSupported(relationId);
 
 	distributionColumnName = text_to_cstring(distributionColumnText);
 	distributionColumn = BuildDistributionKeyFromColumnName(relation,
@@ -293,7 +293,7 @@ create_reference_table(PG_FUNCTION_ARGS)
 	 * on this relation to have a supported relation kind. More extensive checks
 	 * will be performed in CreateDistributedTable.
 	 */
-	EnsureRelationKindSupported(relationId);
+	//EnsureRelationKindSupported(relationId);
 
 	workerNodeList = ActivePrimaryNodeList();
 	workerCount = list_length(workerNodeList);
@@ -362,7 +362,9 @@ CreateDistributedTable(Oid relationId, Var *distributionColumn, char distributio
 	/* foreign tables does not support TRUNCATE trigger */
 	if (RegularTable(relationId))
 	{
-		CreateTruncateTrigger(relationId);
+		if (!IsChildTable(relationId)) {
+			CreateTruncateTrigger(relationId);
+		}
 	}
 
 	/*

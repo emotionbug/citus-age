@@ -271,7 +271,7 @@ pg_get_tableschemadef_string(Oid tableRelationId, bool includeSequenceDefaults)
 	relation = relation_open(tableRelationId, AccessShareLock);
 	relationName = generate_relation_name(tableRelationId, NIL);
 
-	EnsureRelationKindSupported(tableRelationId);
+	//EnsureRelationKindSupported(tableRelationId);
 
 	initStringInfo(&buffer);
 
@@ -514,7 +514,7 @@ pg_get_tablecolumnoptionsdef_string(Oid tableRelationId)
 	 */
 	relation = relation_open(tableRelationId, AccessShareLock);
 
-	EnsureRelationKindSupported(tableRelationId);
+	//EnsureRelationKindSupported(tableRelationId);
 
 	/*
 	 * Iterate over the table's columns. If a particular column is not dropped
