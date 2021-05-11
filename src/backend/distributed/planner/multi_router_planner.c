@@ -1521,7 +1521,7 @@ RouterInsertTaskList(Query *query, DeferredErrorMessage **planningError)
 
 	ErrorIfNoShardsExist(cacheEntry);
 
-	Assert(query->commandType == CMD_INSERT);
+	Assert(query->commandType == CMD_INSERT || query->commandType == CMD_GRAPHWRITE);
 
 	modifyRouteList = BuildRoutesForInsert(query, planningError);
 	if (*planningError != NULL)
@@ -2425,7 +2425,7 @@ BuildRoutesForInsert(Query *query, DeferredErrorMessage **planningError)
 	List *modifyRouteList = NIL;
 	ListCell *insertValuesCell = NULL;
 
-	Assert(query->commandType == CMD_INSERT);
+	Assert(query->commandType == CMD_INSERT || query->commandType == CMD_GRAPHWRITE);
 
 	/* reference tables can only have one shard */
 	if (partitionMethod == DISTRIBUTE_BY_NONE)
@@ -2602,7 +2602,7 @@ ExtractDistributedInsertValuesRTE(Query *query)
 	ListCell *rteCell = NULL;
 	RangeTblEntry *valuesRTE = NULL;
 
-	if (query->commandType != CMD_INSERT)
+	if (query->commandType != CMD_INSERT || query->commandType != CMD_GRAPHWRITE)
 	{
 		return NULL;
 	}
