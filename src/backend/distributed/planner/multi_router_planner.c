@@ -1400,6 +1400,7 @@ RouterInsertJob(Query *originalQuery, Query *query, DeferredErrorMessage **plann
 
 		/* determine whether there are function calls to evaluate */
 		requiresMasterEvaluation = RequiresMasterEvaluation(originalQuery);
+		ereport(DEBUG4, (errmsg("requiresMasterEvaluation: %d", requiresMasterEvaluation)));
 	}
 
 	if (!requiresMasterEvaluation)
@@ -2467,6 +2468,11 @@ BuildRoutesForInsert(Query *query, DeferredErrorMessage **planningError)
 
 	/* get full list of insert values and iterate over them to prune */
 	insertValuesList = ExtractInsertValuesList(query, partitionColumn);
+	// age
+	if (query->hasGraphwriteClause) {
+		modifyRouteList = GroupInsertValuesByShardId(insertValuesList);
+		return modifyRouteList;
+	}
 
 	foreach(insertValuesCell, insertValuesList)
 	{
