@@ -88,7 +88,6 @@ static void ResetPlannerRestrictionContext(
 	PlannerRestrictionContext *plannerRestrictionContext);
 static bool HasUnresolvedExternParamsWalker(Node *expression, ParamListInfo boundParams);
 
-
 /* Distributed planner hook */
 PlannedStmt *
 distributed_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
@@ -98,7 +97,13 @@ distributed_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	Query *originalQuery = NULL;
 	PlannerRestrictionContext *plannerRestrictionContext = NULL;
 	bool setPartitionedTablesInherited = false;
-	List *rangeTableList = ExtractRangeTableEntryList(parse);
+	List *rangeTableList = NIL;
+
+	if (parse->hasGraphwriteClause) {
+		rangeTableList = parse->rtable;
+	} else {
+		rangeTableList = ExtractRangeTableEntryList(parse);
+	}
 
 	if (cursorOptions & CURSOR_OPT_FORCE_DISTRIBUTED)
 	{
@@ -414,7 +419,7 @@ IsModifyCommand(Query *query)
 	CmdType commandType = query->commandType;
 
 	if (commandType == CMD_INSERT || commandType == CMD_UPDATE ||
-		commandType == CMD_DELETE)
+		commandType == CMD_DELETE || commandType == CMD_GRAPHWRITE)
 	{
 		return true;
 	}

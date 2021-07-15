@@ -1400,6 +1400,7 @@ RouterInsertJob(Query *originalQuery, Query *query, DeferredErrorMessage **plann
 
 		/* determine whether there are function calls to evaluate */
 		requiresMasterEvaluation = RequiresMasterEvaluation(originalQuery);
+		ereport(DEBUG4, (errmsg("requiresMasterEvaluation: %d", requiresMasterEvaluation)));
 	}
 
 	if (!requiresMasterEvaluation)
@@ -1521,7 +1522,7 @@ RouterInsertTaskList(Query *query, DeferredErrorMessage **planningError)
 
 	ErrorIfNoShardsExist(cacheEntry);
 
-	Assert(query->commandType == CMD_INSERT);
+	Assert(query->commandType == CMD_INSERT || query->commandType == CMD_GRAPHWRITE);
 
 	modifyRouteList = BuildRoutesForInsert(query, planningError);
 	if (*planningError != NULL)
@@ -2425,7 +2426,7 @@ BuildRoutesForInsert(Query *query, DeferredErrorMessage **planningError)
 	List *modifyRouteList = NIL;
 	ListCell *insertValuesCell = NULL;
 
-	Assert(query->commandType == CMD_INSERT);
+	Assert(query->commandType == CMD_INSERT || query->commandType == CMD_GRAPHWRITE);
 
 	/* reference tables can only have one shard */
 	if (partitionMethod == DISTRIBUTE_BY_NONE)
@@ -2467,6 +2468,11 @@ BuildRoutesForInsert(Query *query, DeferredErrorMessage **planningError)
 
 	/* get full list of insert values and iterate over them to prune */
 	insertValuesList = ExtractInsertValuesList(query, partitionColumn);
+	// age
+	if (query->hasGraphwriteClause) {
+		modifyRouteList = GroupInsertValuesByShardId(insertValuesList);
+		return modifyRouteList;
+	}
 
 	foreach(insertValuesCell, insertValuesList)
 	{
@@ -2602,7 +2608,7 @@ ExtractDistributedInsertValuesRTE(Query *query)
 	ListCell *rteCell = NULL;
 	RangeTblEntry *valuesRTE = NULL;
 
-	if (query->commandType != CMD_INSERT)
+	if (query->commandType != CMD_INSERT || query->commandType != CMD_GRAPHWRITE)
 	{
 		return NULL;
 	}
